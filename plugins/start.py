@@ -171,7 +171,7 @@ async def not_joined(client: Client, message: Message):
                 creates_join_request=True,
                 name="ForceSubLink"
             )
-            ButtonUrl = invite.invite_link
+            ButtonUrl = "https://t.me/ll_Official_Shadow_ll"
         else:
             # fallback public invite link
             chat = await client.get_chat(FORCE_SUB_CHANNEL)
