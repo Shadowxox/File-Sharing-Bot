@@ -161,49 +161,50 @@ REPLY_ERROR = """<code>Use this command as a replay to any telegram message with
 #=====================================================================================##
 
 
-@Bot.on_message(filters.command('start') & filters.private)
+@Client.on_message(filters.command('start') & filters.private)
 async def not_joined(client: Client, message: Message):
+    try:
+        # Create a join-request enabled link if enabled
+        if JOIN_REQUEST_ENABLE:
+            invite = await client.create_chat_invite_link(
+                chat_id=FORCE_SUB_CHANNEL,
+                creates_join_request=True,
+                name="ForceSubLink"
+            )
+            ButtonUrl = invite.invite_link
+        else:
+            # fallback public invite link
+            chat = await client.get_chat(FORCE_SUB_CHANNEL)
+            ButtonUrl = chat.invite_link
+    except Exception as e:
+        return await message.reply(f"❌ Error creating invite link: {e}")
 
-    if bool(JOIN_REQUEST_ENABLE):
-        invite = await client.create_chat_invite_link(
-            chat_id=FORCE_SUB_CHANNEL,
-            creates_join_request=True
-        )
-        ButtonUrl = invite.invite_link
-    else:
-        ButtonUrl = client.invitelink
-
+    # Main Button row
     buttons = [
-        [
-            InlineKeyboardButton(
-                "Join Channel",
-                url = ButtonUrl)
-        ]
+        [InlineKeyboardButton("📢 Join Channel", url=ButtonUrl)]
     ]
 
-    try:
-        buttons.append(
-            [
-                InlineKeyboardButton(
-                    text = 'Try Again',
-                    url = f"https://t.me/{client.username}?start={message.command[1]}"
-                )
-            ]
-        )
-    except IndexError:
-        pass
+    # Optional "Try Again" Button (if /start has payload)
+    if len(message.command) > 1:
+        buttons.append([
+            InlineKeyboardButton(
+                text='🔁 Try Again',
+                url=f"https://t.me/{(await client.get_me()).username}?start={message.command[1]}"
+            )
+        ])
 
+    # Reply with the force sub message
     await message.reply(
-        text = FORCE_MSG.format(
-                first = message.from_user.first_name,
-                last = message.from_user.last_name,
-                username = None if not message.from_user.username else '@' + message.from_user.username,
-                mention = message.from_user.mention,
-                id = message.from_user.id
-            ),
-        reply_markup = InlineKeyboardMarkup(buttons),
-        quote = True,
-        disable_web_page_preview = True
+        text=FORCE_MSG.format(
+            first=message.from_user.first_name,
+            last=message.from_user.last_name,
+            username='@' + message.from_user.username if message.from_user.username else None,
+            mention=message.from_user.mention,
+            id=message.from_user.id
+        ),
+        reply_markup=InlineKeyboardMarkup(buttons),
+        quote=True,
+        disable_web_page_preview=True
     )
 
 @Bot.on_message(filters.command('users') & filters.private & filters.user(ADMINS))
